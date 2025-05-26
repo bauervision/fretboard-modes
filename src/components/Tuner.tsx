@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { YIN } from "pitchfinder";
-import  Midi  from "@tonaljs/midi";
+import Midi from "@tonaljs/midi";
 
 export default function Tuner() {
   const [note, setNote] = useState<string>("–");
@@ -65,36 +65,52 @@ export default function Tuner() {
   }, [active]);
 
   return (
-    <div className="p-4 bg-gray-900 text-white rounded-lg max-w-xs mx-auto mb-6">
+    <div className="h-[90vh] max-h-[800px] w-full max-w-xs flex flex-col justify-center items-center p-6 bg-gray-900 text-white rounded-lg shadow-lg">
       <button
         onClick={toggleTuner}
         className={`px-4 py-2 rounded ${
           active ? "bg-red-600" : "bg-green-600"
         }`}
+        style={{ fontSize: "clamp(1rem, 2vw, 1.5rem)" }}
       >
         {active ? "Stop Tuner" : "Start Tuner"}
       </button>
 
-      <div className="mt-4 text-center">
-        <div className="text-5xl font-bold">{note}</div>
-        <div className="mt-1 text-lg">
+      <div className="flex-1 flex flex-col justify-center items-center w-full gap-y-4">
+        <div
+          className="font-bold"
+          style={{
+            fontSize: "clamp(2.5rem, 10vw, 6rem)",
+            lineHeight: 1,
+          }}
+        >
+          {note}
+        </div>
+        <div
+          style={{
+            fontSize: "clamp(1.2rem, 3vw, 2rem)",
+          }}
+        >
           {cents > 0 ? `+${cents}` : cents < 0 ? `${cents}` : "–"}¢
         </div>
-      </div>
 
-      {/* Tuner needle */}
-      <div className="relative h-2 bg-gray-700 rounded mt-4 overflow-hidden">
+        {/* Tuner needle */}
+        <div className="relative h-3 bg-gray-700 rounded mt-6 overflow-hidden w-full max-w-full">
+          <div
+            className="absolute top-0 h-full bg-white"
+            style={{ left: `${50 + cents / 2}%`, width: "2px" }}
+          />
+          <div className="absolute inset-y-0 left-1/2 w-0.5 bg-gray-500" />
+        </div>
+
         <div
-          className="absolute top-0 h-full bg-white"
-          style={{ left: `${50 + cents / 2}%`, width: "2px" }}
-        />
-        <div className="absolute inset-y-0 left-1/2 w-0.5 bg-gray-500" />
-      </div>
-
-      <div className="flex justify-between text-sm mt-1">
-        <span>-50¢</span>
-        <span>0¢</span>
-        <span>+50¢</span>
+          className="flex justify-between text-sm mt-2 w-full max-w-full"
+          style={{ fontSize: "clamp(0.7rem, 1.2vw, 1rem)" }}
+        >
+          <span>-50¢</span>
+          <span>0¢</span>
+          <span>+50¢</span>
+        </div>
       </div>
     </div>
   );
