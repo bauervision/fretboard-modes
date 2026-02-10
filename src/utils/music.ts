@@ -1,6 +1,7 @@
 // src/utils/music.ts
 import { get as getScale } from "@tonaljs/scale";
 import { pitchClass } from "@tonaljs/note";
+import { resolveScaleDef } from "./scales";
 
 /** Standard tuning from low to high */
 export const standardTuning = ["E", "A", "D", "G", "B", "E"];
@@ -38,30 +39,19 @@ function normalizeTonic(root: string): string {
   );
 }
 
-/** Get all scale notes for any root/scale (major, minor, modes, pentatonic, etc.) */
+/** Get all scale notes for any root/scale */
 export function getScaleNotes(root: string, scale: string): string[] {
   const tonic = normalizeTonic(root);
 
-  // Build a list of candidate scale names to try (first successful wins)
-  const candidates: string[] = [];
+  const def = resolveScaleDef(scale);
 
-  // Custom names
-  if (scale === "pentatonic") {
-    candidates.push("major pentatonic");
-  } else if (scale === "minor_pentatonic") {
-    candidates.push("minor pentatonic");
-  } else if (scale === "minor") {
-    // Tonal aliases vary across versions — try all common ones
-    candidates.push("minor");
-    candidates.push("natural minor");
-    candidates.push("aeolian");
-  } else if (scale === "major") {
-    candidates.push("major");
-    candidates.push("ionian");
-  } else {
-    // modes like dorian/phrygian/etc.
-    candidates.push(scale);
-  }
+  const candidates = def?.tonalNames?.length
+    ? [...def.tonalNames]
+    : [
+        // last-ditch fallback: try the raw value in a couple common forms
+        scale,
+        scale.replace(/_/g, " "),
+      ];
 
   for (const name of candidates) {
     const notes = getScale(`${tonic} ${name}`).notes;

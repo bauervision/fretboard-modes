@@ -1,8 +1,13 @@
 // src/components/Fretboard.tsx
 
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { standardTuning, getScaleNotes, noteAtFret } from "../utils/music";
 import { pitchClass, chroma } from "@tonaljs/note";
+import {
+  patternDegreesByString3NPS,
+  majorPentatonicBoxes2Nps,
+  minorPentatonicBoxes2Nps,
+} from "./fretboard/patterns";
 
 interface FretboardProps {
   root: string;
@@ -15,7 +20,20 @@ interface FretboardProps {
   height?: number | string;
 }
 
-const Fretboard: React.FC<FretboardProps> = ({
+function normalizeScaleKey(scale: string): string {
+  return scale.trim().toLowerCase().replace(/\s+/g, "_");
+}
+
+function clampBoxOffset(offset: number, boxCount: number): number {
+  return ((offset % boxCount) + boxCount) % boxCount;
+}
+
+function degreeForSemitone(notesInScale: string[], sem: number): number | null {
+  const idx = notesInScale.findIndex((n) => chroma(n) === sem);
+  return idx >= 0 ? idx + 1 : null;
+}
+
+export default function Fretboard({
   root,
   scale,
   frets = 12,
@@ -24,176 +42,66 @@ const Fretboard: React.FC<FretboardProps> = ({
   patternEnabled,
   patternOffset,
   height = 320,
-}) => {
-  const notesInScale = getScaleNotes(root, scale);
+}: FretboardProps) {
+  const scaleKey = useMemo(() => normalizeScaleKey(scale), [scale]);
+
+  const notesInScale = getScaleNotes(root, scaleKey);
 
   // Use chroma for all “is this in the scale” checks (enharmonic-safe)
   const scaleSemitones = useMemo(
     () => notesInScale.map((n) => chroma(n)),
     [notesInScale],
   );
+
   const rootSemitone = chroma(root);
+
+  const isPentatonic =
+    scaleKey === "pentatonic" ||
+    scaleKey === "major_pentatonic" ||
+    scaleKey === "minor_pentatonic";
+
   const N = notesInScale.length;
-
-  const isPentatonic = scale === "pentatonic" || scale === "minor_pentatonic";
-
-  // 3NPS base degrees (your existing scheme)
-  const patternDegreesByString3NPS = [
-    [2, 3, 4], // E string (6th)
-    [6, 7, 1], // A
-    [3, 4, 5], // D
-    [7, 1, 2], // G
-    [4, 5, 6], // B
-    [1, 2, 3], // e string (1st)
-  ] as const;
-
-  // NOTE: pentatonicBoxes are known-bad in your report; we leave them as-is for now
-  // and focus on fixing the enharmonic issue for diatonic modes first.
-  const pentatonicBoxes = [
-    [
-      [5, 6],
-      [1, 2],
-      [4, 5],
-      [1, 3],
-      [2, 4],
-      [5, 6],
-    ],
-    [
-      [6, 1],
-      [2, 3],
-      [5, 6],
-      [2, 4],
-      [3, 5],
-      [6, 1],
-    ],
-    [
-      [1, 2],
-      [3, 4],
-      [6, 1],
-      [3, 5],
-      [4, 6],
-      [1, 2],
-    ],
-    [
-      [2, 3],
-      [4, 5],
-      [1, 2],
-      [4, 6],
-      [5, 1],
-      [2, 3],
-    ],
-    [
-      [3, 4],
-      [5, 6],
-      [2, 3],
-      [5, 1],
-      [6, 2],
-      [3, 4],
-    ],
-  ];
-
   const boxCount = isPentatonic ? 5 : N;
-  const actualOffset = ((patternOffset % boxCount) + boxCount) % boxCount;
+  const actualOffset = clampBoxOffset(patternOffset, boxCount);
 
-  const patternDegrees = isPentatonic
-    ? pentatonicBoxes[actualOffset]
-    : patternDegreesByString3NPS;
+  const dark = theme === "dark";
+  const fretMarkers = new Set([3, 5, 7, 9, 12, 15, 17, 19, 20]);
 
   const patternPositions = useMemo(() => {
     if (!patternEnabled) return [];
 
-    // Pentatonic: generate 5 “boxes” by sliding a 4-fret window
+    // -------------------------
+    // Pentatonic 2NPS patterns
+    // -------------------------
     if (isPentatonic) {
-      const lowE = "E";
-
-      // find a usable root-on-low-E fret (avoid negative offsets for major box 1)
+      // find a usable root-on-low-E fret (0..11)
       let baseRootFret = -1;
       for (let f = 0; f <= 11; f++) {
-        if (chroma(noteAtFret(lowE, f)) === rootSemitone) {
+        if (chroma(noteAtFret("E", f)) === rootSemitone) {
           baseRootFret = f;
           break;
         }
       }
-
-      // if root is open-string (E), major box 1 needs R-1, so jump to the next octave
-      if (baseRootFret === 0 && scale === "pentatonic") baseRootFret = 12;
-
       if (baseRootFret < 0) return [];
 
-      // Render order is standardTuning.reverse(): [E, B, G, D, A, E]
-      // Each entry is 5 boxes; each box is 6 strings; each string is 2 fret offsets relative to baseRootFret.
-      const majorBoxes: ReadonlyArray<
-        ReadonlyArray<readonly [number, number]>
-      > = [
-        // Box 1
-        [
-          [0, 2],
-          [0, 2],
-          [-1, 1],
-          [-1, 2],
-          [-1, 2],
-          [0, 2],
-        ],
-        // Box 2
-        [
-          [2, 4],
-          [2, 5],
-          [1, 4],
-          [2, 4],
-          [2, 4],
-          [2, 4],
-        ],
-        // Box 3
-        [
-          [4, 7],
-          [5, 7],
-          [4, 6],
-          [4, 6],
-          [4, 7],
-          [4, 7],
-        ],
-        // Box 4
-        [
-          [7, 9],
-          [7, 9],
-          [6, 9],
-          [6, 9],
-          [7, 9],
-          [7, 9],
-        ],
-        // Box 5
-        [
-          [9, 12],
-          [9, 12],
-          [9, 11],
-          [9, 11],
-          [9, 12],
-          [9, 12],
-        ],
-      ];
+      const boxes =
+        scaleKey === "minor_pentatonic"
+          ? minorPentatonicBoxes2Nps
+          : majorPentatonicBoxes2Nps;
 
-      const minorBoxes: ReadonlyArray<ReadonlyArray<readonly [number, number]>> = [
-  // Pos 1 (classic “box 1”)
-  // order: [high e, B, G, D, A, low E]
-  [[0, 3], [0, 3], [0, 2], [0, 2], [0, 2], [0, 3]],
-
-  // Pos 2
-  [[3, 5], [3, 5], [2, 4], [2, 5], [2, 5], [3, 5]],
-
-  // Pos 3
-  [[5, 7], [5, 8], [4, 7], [5, 7], [5, 7], [5, 7]],
-
-  // Pos 4
-  [[7, 10], [8, 10], [7, 9], [7, 9], [7, 10], [7, 10]],
-
-  // Pos 5
-  [[10, 12], [10, 12], [9, 12], [9, 12], [10, 12], [10, 12]],
-];
-
-
-      const boxes = scale === "pentatonic" ? majorBoxes : minorBoxes;
       const box = boxes[actualOffset % 5];
 
+      // Only shift octaves if THIS box would go negative,
+      // and shift down if THIS box would run off the right edge.
+      const allOffsets = box.flatMap(([a, b]) => [a, b]);
+      const minOff = Math.min(...allOffsets);
+      const maxOff = Math.max(...allOffsets);
+
+      if (baseRootFret + minOff < 0) baseRootFret += 12;
+      if (baseRootFret + maxOff > frets && baseRootFret - 12 >= 0)
+        baseRootFret -= 12;
+
+      // Render order is standardTuning.reverse(): [high e, B, G, D, A, low E]
       return standardTuning
         .slice()
         .reverse()
@@ -206,12 +114,15 @@ const Fretboard: React.FC<FretboardProps> = ({
             .flatMap((f) => [f, f + 12])
             .filter((f) => f >= 0 && f <= frets);
 
-          // dedupe just in case
           return Array.from(new Set(fretsExtended)).sort((x, y) => x - y);
         });
     }
 
-    // Diatonic modes: your existing 3NPS logic (degree-based)
+    // -------------------------
+    // Diatonic modes: 3NPS logic
+    // -------------------------
+    const patternDegrees = patternDegreesByString3NPS;
+
     return standardTuning
       .slice()
       .reverse()
@@ -238,20 +149,11 @@ const Fretboard: React.FC<FretboardProps> = ({
     isPentatonic,
     actualOffset,
     frets,
-    scaleSemitones,
     notesInScale,
     N,
-    patternDegrees,
+    rootSemitone,
+    scaleKey,
   ]);
-
-  const dark = theme === "dark";
-  const fretMarkers = new Set([3, 5, 7, 9, 12, 15, 17, 19, 20]);
-
-  // Enharmonic-safe degree lookup (for interval labels)
-  function degreeForSemitone(sem: number): number | null {
-    const idx = notesInScale.findIndex((n) => chroma(n) === sem);
-    return idx >= 0 ? idx + 1 : null;
-  }
 
   return (
     <div
@@ -277,13 +179,51 @@ const Fretboard: React.FC<FretboardProps> = ({
           ))}
         </div>
 
+        {/* Fret lines (single overlay so there are no vertical gaps) */}
+        <div className="pointer-events-none absolute inset-0">
+          {Array.from({ length: frets + 1 }, (_, fret) => {
+            if (fret === 0) return null;
+
+            const isNut = fret === 1;
+            const isOctave = fret === 12;
+
+            const leftPct = (fret / (frets + 1)) * 100;
+
+            const widthPx = isNut ? 4 : isOctave ? 2 : 1;
+
+            const bg =
+              isNut || isOctave
+                ? dark
+                  ? "rgba(229,231,235,0.75)" // light line on dark
+                  : "rgba(17,24,39,0.75)" // dark line on light
+                : dark
+                  ? "rgba(55,65,81,0.55)" // gray-700-ish
+                  : "rgba(209,213,219,0.7)"; // gray-300-ish
+
+            return (
+              <div
+                key={fret}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  bottom: 0,
+                  left: `${leftPct}%`,
+                  width: `${widthPx}px`,
+                  transform: "translateX(-0.5px)",
+                  background: bg,
+                }}
+              />
+            );
+          })}
+        </div>
+
         {/* Frets + dots */}
         <div
           className="grid w-full h-full"
           style={{
             gridTemplateColumns: `repeat(${frets + 1}, minmax(0, 1fr))`,
             gridTemplateRows: `repeat(6, 1fr)`,
-            columnGap: "0.25rem",
+            columnGap: "0",
             rowGap: "0.25rem",
           }}
         >
@@ -306,7 +246,7 @@ const Fretboard: React.FC<FretboardProps> = ({
                 let label = "";
                 if (isInScale) {
                   if (labelType === "interval") {
-                    const deg = degreeForSemitone(sem);
+                    const deg = degreeForSemitone(notesInScale, sem);
                     label = deg ? String(deg) : "";
                   } else {
                     label = pc;
@@ -315,28 +255,8 @@ const Fretboard: React.FC<FretboardProps> = ({
 
                 const cellClasses: string[] = [
                   "relative flex items-center justify-center select-none h-full",
+                  "px-1", // replaces the old columnGap spacing
                 ];
-
-                if (fret > 0) {
-                  cellClasses.push(
-                    "border-l",
-                    dark ? "border-gray-700/50" : "border-gray-300/60",
-                  );
-                }
-
-                if (fret === 1) {
-                  cellClasses.push(
-                    "border-l-4",
-                    dark ? "border-l-gray-200/90" : "border-l-gray-800/90",
-                  );
-                }
-
-                if (fret === 12) {
-                  cellClasses.push(
-                    "border-l-2",
-                    dark ? "border-l-gray-200/70" : "border-l-gray-800/70",
-                  );
-                }
 
                 const showDot = isOpen ? true : isInScale;
 
@@ -416,6 +336,4 @@ const Fretboard: React.FC<FretboardProps> = ({
       </div>
     </div>
   );
-};
-
-export default Fretboard;
+}
