@@ -5,6 +5,7 @@ import Fretboard from "./components/Fretboard";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { HeaderBar } from "./components/HeaderBar";
 import { BackingTrackDialog } from "./components/BackingTrackDialog";
+import { SplashScreen } from "./components/SplashScreen";
 
 import { getScaleNotes } from "./utils/music";
 import type { ScaleKey } from "./utils/scales";
@@ -39,6 +40,8 @@ function applyValidationToTracks(
 }
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState<boolean>(true);
+
   const [isLandscape, setIsLandscape] = useState<boolean>(true);
 
   useEffect(() => {
@@ -176,10 +179,14 @@ export default function App() {
     window.open(url, "_blank", "noopener,noreferrer");
   }
 
+  if (showSplash) {
+    return <SplashScreen onDoneAction={() => setShowSplash(false)} />;
+  }
+
   return (
-    <div className="h-screen overflow-hidden bg-black text-white flex flex-col">
+    <div className="h-screen overflow-hidden bg-black/50 text-white flex flex-col">
       {!isLandscape && (
-        <div className="fixed inset-0 z-50 bg-black text-white flex items-center justify-center p-6">
+        <div className="fixed inset-0 z-50 bg-[color:var(--bg-fretboard)] text-white flex items-center justify-center p-6">
           <div className="max-w-sm text-center">
             <div className="text-2xl font-semibold mb-2">
               Rotate your device

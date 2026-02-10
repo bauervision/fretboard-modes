@@ -169,17 +169,18 @@ export default function Fretboard({
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="relative">
               <div
-                className={[
-                  "absolute left-0 right-0 top-1/2 -translate-y-1/2",
-                  "h-px",
-                  dark ? "bg-gray-600/70" : "bg-gray-400/70",
-                ].join(" ")}
+                className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px"
+                style={{
+                  background: dark
+                    ? "rgba(159, 183, 193, 0.30)"
+                    : "rgba(27, 42, 65, 0.22)",
+                }}
               />
             </div>
           ))}
         </div>
 
-        {/* Fret lines (single overlay so there are no vertical gaps) */}
+        {/* Fret lines */}
         <div className="pointer-events-none absolute inset-0">
           {Array.from({ length: frets + 1 }, (_, fret) => {
             if (fret === 0) return null;
@@ -191,14 +192,13 @@ export default function Fretboard({
 
             const widthPx = isNut ? 4 : isOctave ? 2 : 1;
 
-            const bg =
-              isNut || isOctave
-                ? dark
-                  ? "rgba(229,231,235,0.75)" // light line on dark
-                  : "rgba(17,24,39,0.75)" // dark line on light
-                : dark
-                  ? "rgba(55,65,81,0.55)" // gray-700-ish
-                  : "rgba(209,213,219,0.7)"; // gray-300-ish
+            const bg = isNut
+              ? dark
+                ? "rgba(244, 247, 248, 0.68)"
+                : "rgba(27, 42, 65, 0.62)"
+              : dark
+                ? "rgba(159, 183, 193, 0.24)"
+                : "rgba(27, 42, 65, 0.20)";
 
             return (
               <div
@@ -255,7 +255,7 @@ export default function Fretboard({
 
                 const cellClasses: string[] = [
                   "relative flex items-center justify-center select-none h-full",
-                  "px-1", // replaces the old columnGap spacing
+                  "px-1",
                 ];
 
                 const showDot = isOpen ? true : isInScale;
@@ -266,47 +266,64 @@ export default function Fretboard({
                   isOpen ? "w-10 h-10" : isInPattern ? "w-8 h-8" : "w-7 h-7",
                 ];
 
+                // Class-only decisions (border width)
                 if (isOpen) {
-                  dotClasses.push(
-                    dark ? "bg-blue-600 text-white" : "bg-blue-500 text-white",
-                  );
+                  dotClasses.push("text-white");
                 } else if (patternEnabled) {
                   if (isRoot && isInPattern) {
-                    dotClasses.push(
-                      dark ? "bg-red-600 text-white" : "bg-red-500 text-white",
-                    );
+                    dotClasses.push("text-white");
                   } else if (isRoot && !isInPattern) {
-                    dotClasses.push(
-                      "border-2",
-                      dark
-                        ? "border-red-500 text-red-200"
-                        : "border-red-500 text-red-700",
-                    );
+                    dotClasses.push("border-2");
                   } else if (isInPattern) {
-                    dotClasses.push(
-                      dark
-                        ? "bg-blue-600 text-white"
-                        : "bg-blue-500 text-white",
-                    );
+                    dotClasses.push("text-white");
                   } else if (isInScale) {
-                    dotClasses.push(
-                      "border-2",
-                      dark
-                        ? "border-gray-500 text-gray-200"
-                        : "border-gray-400 text-gray-700",
-                    );
+                    // Out-of-position scale tones: thinner outline
+                    dotClasses.push("border");
                   }
                 } else {
                   if (isRoot) {
-                    dotClasses.push(
-                      dark ? "bg-red-600 text-white" : "bg-red-500 text-white",
-                    );
+                    dotClasses.push("text-white");
                   } else if (isInScale) {
-                    dotClasses.push(
-                      dark
-                        ? "bg-blue-600 text-white"
-                        : "bg-blue-500 text-white",
-                    );
+                    dotClasses.push("text-white");
+                  }
+                }
+
+                const style: React.CSSProperties = {};
+
+                if (isOpen) {
+                  style.backgroundColor = "var(--brand-primary)";
+                } else if (patternEnabled) {
+                  if (isRoot && isInPattern) {
+                    style.backgroundColor = "var(--accent-root)";
+                  } else if (isRoot && !isInPattern) {
+                    style.borderColor = dark
+                      ? "rgba(31,164,169,0.70)"
+                      : "rgba(31,164,169,0.82)";
+                    style.color = dark
+                      ? "rgba(31,164,169,0.85)"
+                      : "rgba(15,76,92,0.90)";
+                    style.backgroundColor = dark
+                      ? "rgba(31,164,169,0.05)"
+                      : "rgba(31,164,169,0.06)";
+                  } else if (isInPattern) {
+                    style.backgroundColor = "var(--brand-primary)";
+                  } else if (isInScale) {
+                    // Extremely muted “out of position” scale tones
+                    style.borderColor = dark
+                      ? "rgba(159,183,193,0.22)"
+                      : "rgba(27,42,65,0.18)";
+                    style.backgroundColor = dark
+                      ? "rgba(255,255,255,0.015)"
+                      : "rgba(0,0,0,0.02)";
+                    style.color = dark
+                      ? "rgba(244,247,248,0.42)"
+                      : "rgba(27,42,65,0.55)";
+                  }
+                } else {
+                  if (isRoot) {
+                    style.backgroundColor = "var(--accent-root)";
+                  } else if (isInScale) {
+                    style.backgroundColor = "var(--brand-primary)";
                   }
                 }
 
@@ -318,11 +335,21 @@ export default function Fretboard({
                     className={cellClasses.join(" ")}
                   >
                     {sIdx === 5 && fretMarkers.has(fret) && (
-                      <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white rounded-full opacity-50" />
+                      <div
+                        className="absolute bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full"
+                        style={{
+                          background: "var(--brand-surface)",
+                          opacity: 0.4,
+                        }}
+                      />
                     )}
 
                     {showDot ? (
-                      <div className={dotClasses.join(" ")} title={full}>
+                      <div
+                        className={dotClasses.join(" ")}
+                        style={style}
+                        title={full}
+                      >
                         <span className="text-xs font-semibold">
                           {isOpen ? openLabel : label}
                         </span>

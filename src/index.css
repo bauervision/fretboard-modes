@@ -1,6 +1,65 @@
 @import "tailwindcss";
 
+:root {
+  /* Brand */
+  --brand-primary: #0f4c5c;
+  --brand-secondary: #1b2a41;
+  --brand-surface: #f4f7f8;
+
+  /* Accents (music meaning) */
+  --accent-root: #1fa4a9;
+  --accent-character: #f2a541;
+  --accent-neutral-note: #9fb7c1;
+
+  /* UI states */
+  --ui-success: #2ead7f;
+  --ui-warn: #e0b252;
+  --ui-error: #d64545;
+
+  /* Backgrounds */
+  --bg-app: #f4f7f8;
+  --bg-panel: #ffffff;
+  --bg-fretboard: #0d1b2a;
+
+  /* Text */
+  --text-strong: #0d1b2a;
+  --text: #1b2a41;
+  --text-muted: #5b6b7a;
+
+  /* Borders */
+  --border: rgba(27, 42, 65, 0.14);
+
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Arial,
+    sans-serif;
+}
+
+html,
 body {
-  @apply min-h-screen bg-gradient-to-b from-gray-900 to-black;
-  @apply text-white;
+  background: var(--bg-fretboard);
+  color: var(--text);
+}
+
+@keyframes fmSplashInOut {
+  0%   { opacity: 0; transform: scale(0.92); }
+  18%  { opacity: 1; transform: scale(1.0); }
+  70%  { opacity: 1; transform: scale(1.0); }
+  100% { opacity: 0; transform: scale(1.03); }
+}
+
+.fm-splash-logo {
+  animation: fmSplashInOut 1600ms ease-in-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-splash-logo {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }

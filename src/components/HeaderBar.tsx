@@ -71,9 +71,16 @@ export function HeaderBar({
   const posText = patternEnabled ? positionLabel : "Off";
   const clsIconBtn = iconBtnClass(clsBtn);
 
+  const brandedShell = [
+    clsPanel,
+    "backdrop-blur",
+    "bg-[color:var(--brand-secondary)]/35",
+    "border-[color:var(--border)]",
+  ].join(" ");
+
   if (!focusMode) {
     return (
-      <div className={`${clsPanel} px-3 py-2`}>
+      <div className={`${brandedShell} px-3 py-2`}>
         <div className="flex items-center gap-3 whitespace-nowrap">
           {/* LEFT: key/scale + BT */}
           <div className="flex items-end gap-2">
@@ -146,12 +153,18 @@ export function HeaderBar({
 
   // Focus mode
   return (
-    <div className={`${clsPanel} px-2 py-1`}>
+    <div className={`${brandedShell} px-2 py-1`}>
       <div className="flex items-center whitespace-nowrap">
         {/* LEFT: mode label + BT */}
         <div className="min-w-[260px] px-2 flex items-center gap-2">
-          <div className="inline-flex items-center rounded-lg border border-blue-500/30 bg-blue-600/15 px-3 py-1">
-            <span className="text-base font-semibold tracking-wide text-blue-200">
+          <div
+            className="inline-flex items-center rounded-lg border px-3 py-1"
+            style={{
+              borderColor: "rgba(159,183,193,0.28)",
+              backgroundColor: "rgba(27,42,65,0.25)",
+            }}
+          >
+            <span className="text-base font-semibold tracking-wide text-[color:var(--brand-surface)]/90">
               {modeLabel}
             </span>
           </div>
