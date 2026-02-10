@@ -1,4 +1,4 @@
-// music.ts
+// src/utils/music.ts
 import { get as getScale } from "@tonaljs/scale";
 import { pitchClass } from "@tonaljs/note";
 
@@ -21,31 +21,53 @@ export function noteAtFret(openNote: string, fret: number): string {
     "A#",
     "B",
   ];
-  // Use pitchClass to normalize sharps/flats
+
   const enharmonic = pitchClass(openNote);
   const idx = chromatic.indexOf(enharmonic);
   if (idx === -1) throw new Error("Invalid open note: " + openNote);
+
   const newIdx = (idx + fret) % 12;
   return chromatic[newIdx];
 }
 
-/** Get all scale notes for any root/scale (major, minor, modes, pentatonic, etc.) */
-export function getScaleNotes(root: string, scale: string): string[] {
-  // Normalize root: uppercase letter, handle accidental
-  const tonic =
+function normalizeTonic(root: string): string {
+  return (
     root.charAt(0).toUpperCase() +
     (root.charAt(1) === "#" || root.charAt(1) === "b" ? root.charAt(1) : "") +
-    root.slice(2);
+    root.slice(2)
+  );
+}
 
-  // Map our custom names to Tonal.js's names
-  let scaleName = scale;
-  if (scale === "pentatonic") scaleName = "major pentatonic";
-  if (scale === "minor_pentatonic") scaleName = "minor pentatonic";
-  if (scale === "minor") scaleName = "natural minor";
+/** Get all scale notes for any root/scale (major, minor, modes, pentatonic, etc.) */
+export function getScaleNotes(root: string, scale: string): string[] {
+  const tonic = normalizeTonic(root);
 
-  // Modes/dorian/phrygian/etc. are passed as-is
-  const notes = getScale(`${tonic} ${scaleName}`).notes;
+  // Build a list of candidate scale names to try (first successful wins)
+  const candidates: string[] = [];
 
-  // If for some reason Tonal fails, fallback to just the tonic
-  return notes.length ? notes : [tonic];
+  // Custom names
+  if (scale === "pentatonic") {
+    candidates.push("major pentatonic");
+  } else if (scale === "minor_pentatonic") {
+    candidates.push("minor pentatonic");
+  } else if (scale === "minor") {
+    // Tonal aliases vary across versions — try all common ones
+    candidates.push("minor");
+    candidates.push("natural minor");
+    candidates.push("aeolian");
+  } else if (scale === "major") {
+    candidates.push("major");
+    candidates.push("ionian");
+  } else {
+    // modes like dorian/phrygian/etc.
+    candidates.push(scale);
+  }
+
+  for (const name of candidates) {
+    const notes = getScale(`${tonic} ${name}`).notes;
+    if (notes.length) return notes;
+  }
+
+  // Fallback: just tonic
+  return [tonic];
 }
